@@ -1,0 +1,1675 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>PaceKit</title>
+<style>
+  :root {
+    --track-job: #6C5CE7;
+    --track-job-bg: #EBE8FD;
+    --track-naru: #27AE60;
+    --track-naru-bg: #E3F6EE;
+    --track-tiger: #E67E22;
+    --track-tiger-bg: #FEF0E3;
+    --track-life: #D6608F;
+    --track-life-bg: #FDEBF3;
+
+    --bg: #F4F6FA;
+    --surface: #FFFFFF;
+    --border: #E9ECF5;
+    --text: #1E2337;
+    --text-dim: #6B7280;
+    --text-faint: #9CA3AF;
+    --accent: #7B6FF0;
+    --accent-dim: #E4E1FC;
+    --danger: #E15B6F;
+    --radius: 22px;
+    --radius-sm: 14px;
+    --radius-pill: 999px;
+    --shadow: 0 8px 24px rgba(30, 35, 55, 0.06);
+    --shadow-sm: 0 4px 12px rgba(30, 35, 55, 0.05);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding-bottom: 100px;
+    line-height: 1.5;
+  }
+
+  button {
+    font-family: inherit;
+    cursor: pointer;
+  }
+
+  input, select, textarea {
+    font-family: inherit;
+    font-size: 15px;
+  }
+
+  /* ===== D-Day 타임라인 바 ===== */
+  #ddayBar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
+    padding: 14px 16px 16px;
+  }
+
+  #ddayHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+
+  #ddayHeader h1 {
+    font-size: 18px;
+    margin: 0;
+    font-weight: 800;
+    letter-spacing: 0.2px;
+    color: var(--accent);
+  }
+
+  #ddayHeader .subtitle {
+    font-size: 12px;
+    color: var(--text-faint);
+  }
+
+  #milestoneAddBtn {
+    background: var(--accent-dim);
+    border: none;
+    border-radius: var(--radius-pill);
+    padding: 6px 14px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--accent);
+    transition: background 0.15s;
+  }
+  #milestoneAddBtn:hover { background: #D8D3FA; }
+
+  #milestoneList {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: thin;
+  }
+
+  .milestone-card {
+    flex: 0 0 auto;
+    min-width: 132px;
+    border-radius: 16px;
+    padding: 10px 14px;
+    position: relative;
+  }
+  .milestone-card:nth-child(4n+1) { background: #EBE8FD; }
+  .milestone-card:nth-child(4n+2) { background: #E3F6EE; }
+  .milestone-card:nth-child(4n+3) { background: #FEF0E3; }
+  .milestone-card:nth-child(4n+4) { background: #FDEBF3; }
+
+  .milestone-dday {
+    font-size: 19px;
+    font-weight: 800;
+    color: var(--text);
+  }
+
+  .milestone-dday.past { color: var(--text-faint); }
+
+  .milestone-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-dim);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px;
+    margin-top: 2px;
+  }
+
+  .milestone-progress {
+    margin-top: 8px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.65);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .milestone-progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+
+  .milestone-actions {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    display: none;
+    gap: 2px;
+  }
+  .milestone-card:hover .milestone-actions { display: flex; }
+  .milestone-actions button {
+    background: rgba(255, 255, 255, 0.75);
+    border: none;
+    border-radius: 8px;
+    font-size: 10px;
+    padding: 2px 6px;
+    color: var(--text-dim);
+  }
+
+  /* ===== 메인 컨테이너 ===== */
+  #app {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 20px 16px 24px;
+  }
+
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* ===== 오늘 뷰 ===== */
+  #todayHeader {
+    margin-bottom: 20px;
+  }
+  #todayDateBig {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--text);
+  }
+  #todayDateSub {
+    font-size: 13px;
+    color: var(--text-faint);
+    margin-top: 2px;
+  }
+
+  .section-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 24px 0 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .card {
+    background: var(--surface);
+    border: none;
+    border-radius: var(--radius);
+    padding: 18px;
+    box-shadow: var(--shadow);
+  }
+
+  #progressBox {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface);
+    border: none;
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    margin-bottom: 8px;
+    box-shadow: var(--shadow);
+  }
+  #progressText {
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--text);
+  }
+  #progressBarOuter {
+    flex: 1;
+    height: 9px;
+    background: var(--bg);
+    border-radius: 5px;
+    margin: 0 16px;
+    overflow: hidden;
+  }
+  #progressBarInner {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 5px;
+    transition: width 0.2s;
+  }
+  #trackCounts {
+    font-size: 11.5px;
+    color: var(--text-faint);
+    margin-top: 10px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .track-count-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: var(--radius-pill);
+    font-weight: 600;
+  }
+  .track-count-chip .dot { width: 6px; height: 6px; border-radius: 50%; }
+
+  .todo-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 13px 14px;
+    border-radius: 16px;
+    margin-bottom: 8px;
+    transition: opacity 0.15s;
+  }
+  .todo-item:last-child { margin-bottom: 0; }
+  .todo-item.done { opacity: 0.55; }
+
+  .todo-check {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    background: #fff;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: transparent;
+    font-size: 13px;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .todo-check.checked {
+    color: #fff;
+  }
+
+  .track-badge {
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: var(--radius-pill);
+    flex-shrink: 0;
+    white-space: nowrap;
+    background: rgba(255, 255, 255, 0.65);
+  }
+
+  .todo-text {
+    flex: 1;
+    font-size: 14.5px;
+    font-weight: 500;
+    color: var(--text);
+    word-break: break-word;
+  }
+  .todo-text.done {
+    color: var(--text-dim);
+    text-decoration: line-through;
+  }
+
+  .todo-del {
+    background: none;
+    border: none;
+    color: var(--text-faint);
+    font-size: 18px;
+    padding: 2px 6px;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+  .todo-del:hover { color: var(--danger); }
+
+  .empty-msg {
+    color: var(--text-faint);
+    font-size: 13.5px;
+    text-align: center;
+    padding: 24px 0;
+  }
+
+  /* 할 일 추가 폼 */
+  #addTodoForm {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  #newTodoInput {
+    flex: 1;
+    padding: 11px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+    outline: none;
+  }
+  #newTodoInput:focus { border-color: var(--accent); }
+  #newTodoTrack {
+    padding: 11px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+  }
+  #addTodoBtn {
+    padding: 11px 18px;
+    border: none;
+    border-radius: var(--radius-pill);
+    background: var(--accent);
+    color: white;
+    font-weight: 700;
+    font-size: 14px;
+    transition: background 0.15s;
+  }
+  #addTodoBtn:hover:not(:disabled) { background: #6A5EE0; }
+  #addTodoBtn:disabled {
+    background: var(--accent-dim);
+    color: #B4ACEF;
+    cursor: not-allowed;
+  }
+
+  .limit-warning {
+    background: #FEF0E3;
+    border: none;
+    color: #B5651D;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 12px 14px;
+    border-radius: var(--radius-sm);
+    margin-top: 10px;
+    display: none;
+  }
+  .limit-warning.show { display: block; }
+
+  /* 어제 못한 일 */
+  .yesterday-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 14px;
+    border-radius: 16px;
+    margin-bottom: 8px;
+  }
+  .yesterday-item:last-child { margin-bottom: 0; }
+  .yesterday-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .yesterday-actions button {
+    font-size: 11.5px;
+    border: none;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: var(--radius-pill);
+    padding: 5px 10px;
+    color: var(--text-dim);
+    font-weight: 600;
+  }
+  .yesterday-actions button.primary {
+    background: var(--accent);
+    color: white;
+  }
+
+  /* ===== 캘린더 뷰 ===== */
+  #calHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  #calHeader h2 {
+    font-size: 17px;
+    margin: 0;
+    font-weight: 700;
+    color: var(--text);
+  }
+  #calHeader button {
+    background: var(--bg);
+    border: none;
+    border-radius: 10px;
+    width: 34px;
+    height: 34px;
+    font-size: 15px;
+    color: var(--text-dim);
+  }
+  #calGrid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+  }
+  .cal-dow {
+    text-align: center;
+    font-size: 11.5px;
+    color: var(--text-faint);
+    padding-bottom: 8px;
+    font-weight: 700;
+  }
+  .cal-cell {
+    aspect-ratio: 1;
+    border-radius: 12px;
+    border: none;
+    background: transparent;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 5px 2px 4px;
+    position: relative;
+    font-size: 12px;
+    color: var(--text);
+  }
+  .cal-cell.empty { background: none; }
+  .cal-cell.today { font-weight: 700; }
+  .cal-cell.today .cal-daynum {
+    background: var(--accent);
+    color: #fff;
+  }
+  .cal-cell.past-complete {
+    background: var(--track-naru-bg);
+  }
+  .cal-cell.past-partial {
+    opacity: 0.5;
+  }
+  .cal-cell.past-empty {
+    opacity: 0.4;
+  }
+  .cal-cell.milestone-day::after {
+    content: '';
+    position: absolute;
+    top: 4px;
+    right: 6px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  .cal-daynum {
+    margin-bottom: 3px;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+  }
+  .cal-dots {
+    display: flex;
+    gap: 2px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 100%;
+  }
+  .cal-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+  }
+
+  /* 날짜 상세 패널 */
+  #dayDetailOverlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(30, 35, 55, 0.35);
+    z-index: 100;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  #dayDetailOverlay.show { display: flex; }
+  #dayDetailPanel {
+    background: var(--bg);
+    width: 100%;
+    max-width: 640px;
+    border-radius: 26px 26px 0 0;
+    padding: 20px 18px 28px;
+    max-height: 80vh;
+    overflow-y: auto;
+  }
+  #dayDetailHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+  #dayDetailTitle { font-size: 17px; font-weight: 800; color: var(--text); }
+  #dayDetailClose {
+    background: var(--surface);
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    font-size: 18px;
+    color: var(--text-faint);
+  }
+  #dayDetailTrack {
+    padding: 11px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+  }
+
+  /* ===== 구직 트래커 ===== */
+  #jobSummary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .job-summary-item {
+    border-radius: 18px;
+    padding: 16px 8px;
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+  }
+  .job-summary-num { font-size: 24px; font-weight: 800; }
+  .job-summary-label { font-size: 11.5px; color: var(--text-dim); margin-top: 4px; font-weight: 600; }
+  .job-summary-total { background: #EBE8FD; }
+  .job-summary-total .job-summary-num { color: #6C5CE7; }
+  .job-summary-waiting { background: #FEF0E3; }
+  .job-summary-waiting .job-summary-num { color: #E67E22; }
+  .job-summary-interview { background: #E3F6EE; }
+  .job-summary-interview .job-summary-num { color: #27AE60; }
+
+  #jobAddBtn {
+    display: block;
+    width: 100%;
+    padding: 13px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: var(--accent-dim);
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 16px;
+    transition: background 0.15s;
+  }
+  #jobAddBtn:hover { background: #D8D3FA; }
+
+  .job-card {
+    background: var(--surface);
+    border: none;
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 10px;
+    box-shadow: var(--shadow);
+  }
+  .job-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .job-company {
+    font-size: 15.5px;
+    font-weight: 800;
+    color: var(--text);
+  }
+  .job-position {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+  .job-status-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 11px;
+    border-radius: var(--radius-pill);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .job-meta {
+    font-size: 12px;
+    color: var(--text-faint);
+    margin-top: 10px;
+  }
+  .job-memo {
+    font-size: 12.5px;
+    color: var(--text-dim);
+    margin-top: 8px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+  }
+  .job-card-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .job-card-actions button {
+    font-size: 12px;
+    border: none;
+    background: var(--bg);
+    border-radius: var(--radius-pill);
+    padding: 6px 12px;
+    color: var(--text-dim);
+    font-weight: 600;
+  }
+  .job-card-actions button.del { color: var(--danger); }
+
+  /* ===== 하단 내비게이션 ===== */
+  #bottomNav {
+    position: fixed;
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    max-width: 608px;
+    margin: 0 auto;
+    background: var(--surface);
+    border-top: none;
+    display: flex;
+    z-index: 60;
+    border-radius: var(--radius);
+    box-shadow: 0 10px 28px rgba(30, 35, 55, 0.14);
+    padding: 6px;
+    padding-bottom: calc(6px + env(safe-area-inset-bottom, 0));
+  }
+  .nav-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    padding: 9px 0 7px;
+    border-radius: 16px;
+    font-size: 12px;
+    color: var(--text-faint);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    font-weight: 600;
+    transition: color 0.15s;
+  }
+  .nav-btn .nav-icon { font-size: 18px; }
+  .nav-btn.active { color: var(--accent); font-weight: 700; }
+
+  /* ===== 모달 (마일스톤 / 설정) ===== */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(30, 35, 55, 0.35);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal-box {
+    background: var(--surface);
+    border-radius: 24px;
+    padding: 22px;
+    width: 100%;
+    max-width: 380px;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 50px rgba(30, 35, 55, 0.18);
+  }
+  .modal-box h3 {
+    margin: 0 0 16px;
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--text);
+  }
+  .form-row {
+    margin-bottom: 14px;
+  }
+  .form-row label {
+    display: block;
+    font-size: 12.5px;
+    color: var(--text-dim);
+    margin-bottom: 5px;
+    font-weight: 600;
+  }
+  .form-row input, .form-row select, .form-row textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+    outline: none;
+  }
+  .form-row input:focus, .form-row select:focus, .form-row textarea:focus { border-color: var(--accent); }
+  .form-row textarea { resize: vertical; min-height: 60px; }
+  .modal-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 18px;
+  }
+  .modal-actions button {
+    flex: 1;
+    padding: 11px;
+    border-radius: var(--radius-pill);
+    border: none;
+    font-weight: 700;
+    font-size: 14px;
+    background: var(--bg);
+    color: var(--text-dim);
+  }
+  .modal-actions button.primary {
+    background: var(--accent);
+    color: white;
+  }
+
+  /* 설정 진입점 */
+  #settingsEntry {
+    text-align: center;
+    margin-top: 32px;
+  }
+  #settingsEntry button {
+    background: none;
+    border: none;
+    color: var(--text-faint);
+    font-size: 12.5px;
+    text-decoration: underline;
+  }
+  #settingsBody .form-row + .form-row { margin-top: 4px; }
+  #settingsBody .settings-btn {
+    width: 100%;
+    padding: 12px;
+    border-radius: var(--radius-sm);
+    border: none;
+    background: var(--bg);
+    color: var(--text-dim);
+    font-size: 13.5px;
+    margin-bottom: 8px;
+    font-weight: 700;
+  }
+  #importFileInput { display: none; }
+
+  .toast {
+    position: fixed;
+    bottom: 96px;
+    left: 50%;
+    transform: translateX(-50%) translateY(10px);
+    background: var(--text);
+    color: white;
+    padding: 11px 20px;
+    border-radius: var(--radius-pill);
+    font-size: 13px;
+    z-index: 300;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== D-Day 타임라인 바 (모든 탭 공통 상단 고정) ===== -->
+<div id="ddayBar">
+  <div id="ddayHeader">
+    <div>
+      <h1>PaceKit</h1>
+    </div>
+    <button id="milestoneAddBtn" onclick="openMilestoneModal()">+ 마일스톤</button>
+  </div>
+  <div id="milestoneList"></div>
+</div>
+
+<div id="app">
+
+  <!-- ===== 오늘 뷰 ===== -->
+  <div class="view active" id="view-today">
+    <div id="todayHeader">
+      <div id="todayDateBig"></div>
+      <div id="todayDateSub"></div>
+    </div>
+
+    <div id="progressBox">
+      <div id="progressText"></div>
+      <div id="progressBarOuter"><div id="progressBarInner"></div></div>
+    </div>
+    <div id="trackCounts"></div>
+
+    <div id="yesterdaySection" style="display:none;">
+      <div class="section-title">어제 못 한 일</div>
+      <div class="card" id="yesterdayList"></div>
+    </div>
+
+    <div class="section-title">오늘 할 일</div>
+    <div class="card">
+      <div id="todayList"></div>
+      <div class="limit-warning" id="limitWarning"></div>
+      <form id="addTodoForm" onsubmit="return handleAddTodo(event)">
+        <select id="newTodoTrack">
+          <option value="job">구직</option>
+          <option value="naru">나루페이지</option>
+          <option value="tiger">타이거스톤</option>
+          <option value="life">생활</option>
+        </select>
+        <input type="text" id="newTodoInput" placeholder="할 일을 입력하세요" maxlength="80">
+        <button type="submit" id="addTodoBtn">추가</button>
+      </form>
+    </div>
+
+    <div id="settingsEntry">
+      <button onclick="openSettingsModal()">설정 / 백업</button>
+    </div>
+  </div>
+
+  <!-- ===== 캘린더 뷰 ===== -->
+  <div class="view" id="view-calendar">
+    <div class="card calendar-card">
+      <div id="calHeader">
+        <button onclick="changeCalMonth(-1)">‹</button>
+        <h2 id="calTitle"></h2>
+        <button onclick="changeCalMonth(1)">›</button>
+      </div>
+      <div id="calGrid"></div>
+    </div>
+  </div>
+
+  <!-- ===== 구직 트래커 뷰 ===== -->
+  <div class="view" id="view-jobs">
+    <div id="jobSummary"></div>
+    <button id="jobAddBtn" onclick="openJobModal()">+ 지원 이력 추가</button>
+    <div id="jobList"></div>
+  </div>
+
+</div>
+
+<!-- ===== 하단 내비게이션 ===== -->
+<div id="bottomNav">
+  <button class="nav-btn active" data-view="today" onclick="switchView('today')">
+    <span class="nav-icon">◐</span><span>오늘</span>
+  </button>
+  <button class="nav-btn" data-view="calendar" onclick="switchView('calendar')">
+    <span class="nav-icon">▦</span><span>캘린더</span>
+  </button>
+  <button class="nav-btn" data-view="jobs" onclick="switchView('jobs')">
+    <span class="nav-icon">▤</span><span>구직 트래커</span>
+  </button>
+</div>
+
+<!-- ===== 날짜 상세 패널 (캘린더에서 날짜 클릭 시) ===== -->
+<div id="dayDetailOverlay" onclick="if(event.target===this) closeDayDetail()">
+  <div id="dayDetailPanel">
+    <div id="dayDetailHeader">
+      <div id="dayDetailTitle"></div>
+      <button id="dayDetailClose" onclick="closeDayDetail()">×</button>
+    </div>
+    <div id="dayDetailProgress" style="font-size:12.5px;color:var(--text-faint);margin-bottom:10px;"></div>
+    <div id="dayDetailList" class="card"></div>
+    <div class="limit-warning" id="dayDetailWarning"></div>
+    <form id="dayDetailAddForm" style="display:flex;gap:8px;margin-top:12px;" onsubmit="return handleAddTodoForDetail(event)">
+      <select id="dayDetailTrack">
+        <option value="job">구직</option>
+        <option value="naru">나루페이지</option>
+        <option value="tiger">타이거스톤</option>
+        <option value="life">생활</option>
+      </select>
+      <input type="text" id="dayDetailInput" placeholder="할 일을 입력하세요" maxlength="80" style="flex:1;padding:11px 14px;border:1px solid var(--border);border-radius:14px;background:var(--bg);">
+      <button type="submit" style="padding:11px 18px;border:none;border-radius:999px;background:var(--accent);color:white;font-weight:700;">추가</button>
+    </form>
+  </div>
+</div>
+
+<!-- ===== 마일스톤 추가/수정 모달 ===== -->
+<div class="modal-overlay" id="milestoneModalOverlay" onclick="if(event.target===this) closeMilestoneModal()">
+  <div class="modal-box">
+    <h3 id="milestoneModalTitle">마일스톤 추가</h3>
+    <input type="hidden" id="milestoneEditId">
+    <div class="form-row">
+      <label>이름</label>
+      <input type="text" id="milestoneNameInput" maxlength="40" placeholder="예: 퇴사 목표">
+    </div>
+    <div class="form-row">
+      <label>날짜</label>
+      <input type="date" id="milestoneDateInput">
+    </div>
+    <div class="modal-actions">
+      <button onclick="deleteMilestoneFromModal()" id="milestoneDeleteBtn" style="display:none;">삭제</button>
+      <button onclick="closeMilestoneModal()">취소</button>
+      <button class="primary" onclick="saveMilestoneFromModal()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 구직 이력 추가/수정 모달 ===== -->
+<div class="modal-overlay" id="jobModalOverlay" onclick="if(event.target===this) closeJobModal()">
+  <div class="modal-box">
+    <h3 id="jobModalTitle">지원 이력 추가</h3>
+    <input type="hidden" id="jobEditId">
+    <div class="form-row">
+      <label>회사명</label>
+      <input type="text" id="jobCompanyInput" maxlength="40">
+    </div>
+    <div class="form-row">
+      <label>포지션</label>
+      <input type="text" id="jobPositionInput" maxlength="40">
+    </div>
+    <div class="form-row">
+      <label>지원일</label>
+      <input type="date" id="jobDateInput">
+    </div>
+    <div class="form-row">
+      <label>상태</label>
+      <select id="jobStatusInput">
+        <option value="applied">지원함</option>
+        <option value="contacted">연락옴</option>
+        <option value="interview">면접</option>
+        <option value="passed">합격</option>
+        <option value="failed">불합격</option>
+        <option value="noresponse">무응답</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label>메모</label>
+      <textarea id="jobMemoInput" maxlength="300"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button onclick="deleteJobFromModal()" id="jobDeleteBtn" style="display:none;">삭제</button>
+      <button onclick="closeJobModal()">취소</button>
+      <button class="primary" onclick="saveJobFromModal()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 설정 / 백업 모달 ===== -->
+<div class="modal-overlay" id="settingsModalOverlay" onclick="if(event.target===this) closeSettingsModal()">
+  <div class="modal-box">
+    <h3>설정 / 백업</h3>
+    <div id="settingsBody">
+      <button class="settings-btn" onclick="exportData()">JSON으로 내보내기 (다운로드)</button>
+      <button class="settings-btn" onclick="document.getElementById('importFileInput').click()">JSON 가져오기 (업로드)</button>
+      <input type="file" id="importFileInput" accept="application/json" onchange="importData(event)">
+      <div style="font-size:11.5px;color:var(--text-faint);margin-top:10px;line-height:1.6;">
+        모든 데이터는 이 브라우저의 localStorage에만 저장됩니다.<br>
+        기기를 바꾸거나 브라우저 데이터를 지우기 전에 꼭 내보내기(백업)를 해두세요.
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="primary" onclick="closeSettingsModal()">닫기</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ==========================================================================
+   PaceKit — 개인용 루틴 관리 앱
+   단일 HTML 파일 / Vanilla JS / localStorage 저장
+   ========================================================================== */
+
+const STORAGE_KEY = 'pacekit_data_v1';
+const MAX_PER_DAY = 5;
+const MAX_PER_TRACK = 2;
+
+const TRACKS = {
+  job:   { name: '구직',      color: '#6C5CE7', bg: '#EBE8FD' },
+  naru:  { name: '나루페이지', color: '#27AE60', bg: '#E3F6EE' },
+  tiger: { name: '타이거스톤', color: '#E67E22', bg: '#FEF0E3' },
+  life:  { name: '생활',      color: '#D6608F', bg: '#FDEBF3' },
+};
+
+const JOB_STATUS = {
+  applied:    { label: '지원함',  color: '#6B7280', bg: '#F1F2F6' },
+  contacted:  { label: '연락옴',  color: '#6C5CE7', bg: '#EBE8FD' },
+  interview:  { label: '면접',    color: '#16A085', bg: '#E1F7F2' },
+  passed:     { label: '합격',    color: '#27AE60', bg: '#E3F6EE' },
+  failed:     { label: '불합격',  color: '#D6608F', bg: '#FDEBF3' },
+  noresponse: { label: '무응답',  color: '#C98BA6', bg: '#FBF0F4' },
+};
+
+/* -------------------- 날짜 유틸 (KST 로컬 타임존 기준, UTC 밀림 방지) -------------------- */
+
+// Date 객체 -> 'YYYY-MM-DD' 로컬 기준 문자열 (toISOString 사용 금지: UTC로 밀리는 버그 있음)
+function dateToStr(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+// 'YYYY-MM-DD' 문자열 -> 로컬 자정 Date 객체
+function strToDate(s) {
+  const [y, m, d] = s.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function todayStr() {
+  return dateToStr(new Date());
+}
+
+function addDaysStr(s, days) {
+  const d = strToDate(s);
+  d.setDate(d.getDate() + days);
+  return dateToStr(d);
+}
+
+// 두 날짜 문자열 사이의 일수 차이 (b - a)
+function diffDays(a, b) {
+  const da = strToDate(a);
+  const db = strToDate(b);
+  return Math.round((db - da) / 86400000);
+}
+
+const WEEKDAY_KO = ['일', '월', '화', '수', '목', '금', '토'];
+
+function formatDateKo(s) {
+  const d = strToDate(s);
+  return `${d.getMonth() + 1}월 ${d.getDate()}일 (${WEEKDAY_KO[d.getDay()]})`;
+}
+
+/* -------------------- 데이터 저장소 -------------------- */
+
+let state = loadState();
+
+function defaultState() {
+  return {
+    todos: [],
+    milestones: [
+      { id: 'm1', name: '퇴사 목표 (이직확인서)', date: '2026-09-10' },
+      { id: 'm2', name: '일본여행 (엄마 환갑)', date: '2026-09-15' },
+      { id: 'm3', name: '예비창업패키지 (예상)', date: '2027-03-01' },
+    ],
+    jobApplications: [],
+    lastVisitDate: todayStr(),
+  };
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return defaultState();
+    const parsed = JSON.parse(raw);
+    return Object.assign(defaultState(), parsed);
+  } catch (e) {
+    console.error('데이터 로드 실패, 기본값 사용', e);
+    return defaultState();
+  }
+}
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+/* -------------------- 토스트 -------------------- */
+
+let toastTimer = null;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+/* -------------------- 할 일(todo) 관련 헬퍼 -------------------- */
+
+function todosForDate(dateStr) {
+  return state.todos.filter(t => t.date === dateStr);
+}
+
+function trackCountForDate(dateStr, track) {
+  return state.todos.filter(t => t.date === dateStr && t.track === track).length;
+}
+
+// 특정 날짜에 새 할 일을 추가할 수 있는지 검사. 가능하면 null, 불가하면 이유 문자열 반환
+function checkCanAdd(dateStr, track) {
+  const dayTodos = todosForDate(dateStr);
+  if (dayTodos.length >= MAX_PER_DAY) {
+    return '오늘은 여기까지! 내일로 보낼까요?';
+  }
+  if (trackCountForDate(dateStr, track) >= MAX_PER_TRACK) {
+    return `${TRACKS[track].name} 트랙은 이미 ${MAX_PER_TRACK}개예요. 다른 날로 옮겨볼까요?`;
+  }
+  return null;
+}
+
+function addTodo(dateStr, track, text) {
+  const err = checkCanAdd(dateStr, track);
+  if (err) return { ok: false, message: err };
+  state.todos.push({ id: uid(), date: dateStr, track, text: text.trim(), done: false });
+  saveState();
+  return { ok: true };
+}
+
+function toggleTodo(id) {
+  const t = state.todos.find(x => x.id === id);
+  if (!t) return;
+  t.done = !t.done;
+  saveState();
+  renderAll();
+}
+
+function deleteTodo(id) {
+  if (!confirm('이 할 일을 삭제할까요?')) return;
+  state.todos = state.todos.filter(x => x.id !== id);
+  saveState();
+  renderAll();
+}
+
+/* -------------------- 어제 못 한 일 처리 (자동 이월 없음) -------------------- */
+
+function getYesterdayUnfinished() {
+  const y = addDaysStr(todayStr(), -1);
+  return state.todos.filter(t => t.date === y && !t.done);
+}
+
+function bringToToday(id) {
+  const t = state.todos.find(x => x.id === id);
+  if (!t) return;
+  const err = checkCanAdd(todayStr(), t.track);
+  if (err) {
+    showToast(err);
+    return;
+  }
+  t.date = todayStr();
+  saveState();
+  renderAll();
+}
+
+function discardYesterday(id) {
+  state.todos = state.todos.filter(x => x.id !== id);
+  saveState();
+  renderAll();
+}
+
+/* -------------------- 뷰 전환 -------------------- */
+
+let currentView = 'today';
+
+function switchView(view) {
+  currentView = view;
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-' + view).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.view === view);
+  });
+  if (view === 'calendar') renderCalendar();
+  if (view === 'jobs') renderJobs();
+}
+
+/* -------------------- D-Day 타임라인 바 렌더 -------------------- */
+
+function renderMilestoneBar() {
+  const list = document.getElementById('milestoneList');
+  const today = todayStr();
+  const sorted = [...state.milestones].sort((a, b) => a.date.localeCompare(b.date));
+
+  if (sorted.length === 0) {
+    list.innerHTML = '<div class="empty-msg" style="padding:8px 0;">등록된 마일스톤이 없어요</div>';
+    return;
+  }
+
+  // 진행바 계산 기준: 오늘부터 가장 먼 마일스톤까지를 100%로 두고 상대적 위치 표시
+  const maxDiff = Math.max(...sorted.map(m => Math.max(diffDays(today, m.date), 1)));
+
+  list.innerHTML = sorted.map(m => {
+    const d = diffDays(today, m.date);
+    const isPast = d < 0;
+    const ddayLabel = d === 0 ? 'D-DAY' : (d > 0 ? `D-${d}` : `D+${Math.abs(d)}`);
+    const progressPct = isPast ? 100 : Math.max(4, 100 - Math.round((d / maxDiff) * 100));
+    return `
+      <div class="milestone-card">
+        <div class="milestone-actions">
+          <button onclick="openMilestoneModal('${m.id}')">✎</button>
+        </div>
+        <div class="milestone-dday ${isPast ? 'past' : ''}">${ddayLabel}</div>
+        <div class="milestone-name">${escapeHtml(m.name)}</div>
+        <div class="milestone-progress"><div class="milestone-progress-fill" style="width:${progressPct}%"></div></div>
+      </div>
+    `;
+  }).join('');
+}
+
+/* -------------------- 오늘 뷰 렌더 -------------------- */
+
+function renderToday() {
+  const today = todayStr();
+  document.getElementById('todayDateBig').textContent = formatDateKo(today);
+  document.getElementById('todayDateSub').textContent = `${strToDate(today).getFullYear()}년`;
+
+  // 진행률
+  const dayTodos = todosForDate(today);
+  const doneCount = dayTodos.filter(t => t.done).length;
+  document.getElementById('progressText').textContent = `오늘 ${doneCount}/${dayTodos.length || 0} 완료`;
+  const pct = dayTodos.length ? Math.round((doneCount / dayTodos.length) * 100) : 0;
+  document.getElementById('progressBarInner').style.width = pct + '%';
+
+  // 트랙별 카운트 칩
+  const chipsHtml = Object.keys(TRACKS).map(tk => {
+    const cnt = trackCountForDate(today, tk);
+    return `<span class="track-count-chip" style="background:${TRACKS[tk].bg};color:${TRACKS[tk].color}">
+      <span class="dot" style="background:${TRACKS[tk].color}"></span>${TRACKS[tk].name} ${cnt}/${MAX_PER_TRACK}
+    </span>`;
+  }).join('');
+  document.getElementById('trackCounts').innerHTML = chipsHtml;
+
+  // 오늘 할 일 목록
+  const listEl = document.getElementById('todayList');
+  if (dayTodos.length === 0) {
+    listEl.innerHTML = '<div class="empty-msg">아직 등록된 할 일이 없어요</div>';
+  } else {
+    listEl.innerHTML = dayTodos.map(t => renderTodoItem(t)).join('');
+  }
+
+  // 추가 버튼 상태 (5개 도달 시 비활성)
+  document.getElementById('addTodoBtn').disabled = dayTodos.length >= MAX_PER_DAY;
+  document.getElementById('limitWarning').classList.remove('show');
+
+  // 어제 못 한 일
+  const unfinished = getYesterdayUnfinished();
+  const ySection = document.getElementById('yesterdaySection');
+  if (unfinished.length > 0) {
+    ySection.style.display = 'block';
+    document.getElementById('yesterdayList').innerHTML = unfinished.map(t => `
+      <div class="yesterday-item" style="background:${TRACKS[t.track].bg};">
+        <span class="track-badge" style="color:${TRACKS[t.track].color};">${TRACKS[t.track].name}</span>
+        <span class="todo-text">${escapeHtml(t.text)}</span>
+        <div class="yesterday-actions">
+          <button class="primary" onclick="bringToToday('${t.id}')">오늘로</button>
+          <button onclick="discardYesterday('${t.id}')">버리기</button>
+        </div>
+      </div>
+    `).join('');
+  } else {
+    ySection.style.display = 'none';
+  }
+}
+
+function renderTodoItem(t) {
+  const tr = TRACKS[t.track];
+  return `
+    <div class="todo-item ${t.done ? 'done' : ''}" style="background:${tr.bg};">
+      <button class="todo-check ${t.done ? 'checked' : ''}" style="border-color:${tr.color};${t.done ? `background:${tr.color};` : ''}" onclick="toggleTodo('${t.id}')">${t.done ? '✓' : ''}</button>
+      <span class="track-badge" style="color:${tr.color};">${tr.name}</span>
+      <span class="todo-text ${t.done ? 'done' : ''}">${escapeHtml(t.text)}</span>
+      <button class="todo-del" onclick="deleteTodo('${t.id}')">×</button>
+    </div>
+  `;
+}
+
+function handleAddTodo(ev) {
+  ev.preventDefault();
+  const input = document.getElementById('newTodoInput');
+  const trackSel = document.getElementById('newTodoTrack');
+  const text = input.value.trim();
+  if (!text) return false;
+
+  const result = addTodo(todayStr(), trackSel.value, text);
+  if (!result.ok) {
+    const warn = document.getElementById('limitWarning');
+    warn.textContent = result.message;
+    warn.classList.add('show');
+    return false;
+  }
+  input.value = '';
+  document.getElementById('limitWarning').classList.remove('show');
+  renderAll();
+  return false;
+}
+
+/* -------------------- 캘린더 뷰 렌더 -------------------- */
+
+let calYear, calMonth; // calMonth: 0-indexed
+
+(function initCalCursor() {
+  const now = new Date();
+  calYear = now.getFullYear();
+  calMonth = now.getMonth();
+})();
+
+function changeCalMonth(delta) {
+  calMonth += delta;
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  renderCalendar();
+}
+
+function renderCalendar() {
+  document.getElementById('calTitle').textContent = `${calYear}년 ${calMonth + 1}월`;
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML = '';
+
+  ['일', '월', '화', '수', '목', '금', '토'].forEach(d => {
+    const el = document.createElement('div');
+    el.className = 'cal-dow';
+    el.textContent = d;
+    grid.appendChild(el);
+  });
+
+  const firstDay = new Date(calYear, calMonth, 1);
+  const startWeekday = firstDay.getDay();
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  const today = todayStr();
+  const milestoneDates = new Set(state.milestones.map(m => m.date));
+
+  for (let i = 0; i < startWeekday; i++) {
+    const el = document.createElement('div');
+    el.className = 'cal-cell empty';
+    grid.appendChild(el);
+  }
+
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateStr = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const dayTodos = todosForDate(dateStr);
+    const isToday = dateStr === today;
+    const isPast = dateStr < today;
+
+    const cell = document.createElement('div');
+    let cls = 'cal-cell';
+    if (isToday) cls += ' today';
+    if (milestoneDates.has(dateStr)) cls += ' milestone-day';
+
+    if (isPast && dayTodos.length > 0) {
+      const doneCount = dayTodos.filter(t => t.done).length;
+      if (doneCount === dayTodos.length) cls += ' past-complete';
+      else if (doneCount === 0) cls += ' past-empty';
+      else cls += ' past-partial';
+    } else if (isPast) {
+      cls += ' past-empty';
+    }
+
+    cell.className = cls;
+    cell.onclick = () => openDayDetail(dateStr);
+
+    const dotsHtml = dayTodos.slice(0, 6).map(t =>
+      `<span class="cal-dot" style="background:${TRACKS[t.track].color}"></span>`
+    ).join('');
+
+    cell.innerHTML = `<div class="cal-daynum">${day}</div><div class="cal-dots">${dotsHtml}</div>`;
+    grid.appendChild(cell);
+  }
+}
+
+/* -------------------- 날짜 상세 패널 -------------------- */
+
+let detailDate = null;
+
+function openDayDetail(dateStr) {
+  detailDate = dateStr;
+  document.getElementById('dayDetailTitle').textContent = formatDateKo(dateStr);
+  renderDayDetail();
+  document.getElementById('dayDetailOverlay').classList.add('show');
+}
+
+function closeDayDetail() {
+  document.getElementById('dayDetailOverlay').classList.remove('show');
+  detailDate = null;
+  renderCalendar();
+}
+
+function renderDayDetail() {
+  const dayTodos = todosForDate(detailDate);
+  const doneCount = dayTodos.filter(t => t.done).length;
+  document.getElementById('dayDetailProgress').textContent =
+    `${doneCount}/${dayTodos.length || 0} 완료 · 트랙당 최대 ${MAX_PER_TRACK}개, 하루 최대 ${MAX_PER_DAY}개`;
+
+  const listEl = document.getElementById('dayDetailList');
+  listEl.innerHTML = dayTodos.length === 0
+    ? '<div class="empty-msg">등록된 할 일이 없어요</div>'
+    : dayTodos.map(t => renderTodoItem(t)).join('');
+
+  document.getElementById('dayDetailWarning').classList.remove('show');
+}
+
+function handleAddTodoForDetail(ev) {
+  ev.preventDefault();
+  const input = document.getElementById('dayDetailInput');
+  const trackSel = document.getElementById('dayDetailTrack');
+  const text = input.value.trim();
+  if (!text) return false;
+
+  const result = addTodo(detailDate, trackSel.value, text);
+  if (!result.ok) {
+    const warn = document.getElementById('dayDetailWarning');
+    warn.textContent = result.message;
+    warn.classList.add('show');
+    return false;
+  }
+  input.value = '';
+  renderDayDetail();
+  renderAll();
+  return false;
+}
+
+/* -------------------- 마일스톤 모달 -------------------- */
+
+function openMilestoneModal(id) {
+  const isEdit = !!id;
+  document.getElementById('milestoneModalTitle').textContent = isEdit ? '마일스톤 수정' : '마일스톤 추가';
+  document.getElementById('milestoneDeleteBtn').style.display = isEdit ? 'block' : 'none';
+  if (isEdit) {
+    const m = state.milestones.find(x => x.id === id);
+    document.getElementById('milestoneEditId').value = m.id;
+    document.getElementById('milestoneNameInput').value = m.name;
+    document.getElementById('milestoneDateInput').value = m.date;
+  } else {
+    document.getElementById('milestoneEditId').value = '';
+    document.getElementById('milestoneNameInput').value = '';
+    document.getElementById('milestoneDateInput').value = todayStr();
+  }
+  document.getElementById('milestoneModalOverlay').classList.add('show');
+}
+
+function closeMilestoneModal() {
+  document.getElementById('milestoneModalOverlay').classList.remove('show');
+}
+
+function saveMilestoneFromModal() {
+  const id = document.getElementById('milestoneEditId').value;
+  const name = document.getElementById('milestoneNameInput').value.trim();
+  const date = document.getElementById('milestoneDateInput').value;
+  if (!name || !date) {
+    showToast('이름과 날짜를 모두 입력해주세요');
+    return;
+  }
+  if (id) {
+    const m = state.milestones.find(x => x.id === id);
+    m.name = name;
+    m.date = date;
+  } else {
+    state.milestones.push({ id: uid(), name, date });
+  }
+  saveState();
+  closeMilestoneModal();
+  renderAll();
+}
+
+function deleteMilestoneFromModal() {
+  const id = document.getElementById('milestoneEditId').value;
+  if (!id) return;
+  if (!confirm('이 마일스톤을 삭제할까요?')) return;
+  state.milestones = state.milestones.filter(x => x.id !== id);
+  saveState();
+  closeMilestoneModal();
+  renderAll();
+}
+
+/* -------------------- 구직 트래커 -------------------- */
+
+function renderJobs() {
+  const apps = state.jobApplications;
+  const total = apps.length;
+  const waiting = apps.filter(a => a.status === 'applied' || a.status === 'contacted').length;
+  const interview = apps.filter(a => a.status === 'interview').length;
+
+  document.getElementById('jobSummary').innerHTML = `
+    <div class="job-summary-item job-summary-total">
+      <div class="job-summary-num">${total}</div>
+      <div class="job-summary-label">총 지원</div>
+    </div>
+    <div class="job-summary-item job-summary-waiting">
+      <div class="job-summary-num">${waiting}</div>
+      <div class="job-summary-label">응답 대기</div>
+    </div>
+    <div class="job-summary-item job-summary-interview">
+      <div class="job-summary-num">${interview}</div>
+      <div class="job-summary-label">면접</div>
+    </div>
+  `;
+
+  const listEl = document.getElementById('jobList');
+  if (apps.length === 0) {
+    listEl.innerHTML = '<div class="empty-msg">아직 등록된 지원 이력이 없어요</div>';
+    return;
+  }
+
+  const sorted = [...apps].sort((a, b) => b.date.localeCompare(a.date));
+  listEl.innerHTML = sorted.map(a => {
+    const st = JOB_STATUS[a.status];
+    return `
+      <div class="job-card">
+        <div class="job-card-top">
+          <div>
+            <div class="job-company">${escapeHtml(a.company)}</div>
+            <div class="job-position">${escapeHtml(a.position)}</div>
+          </div>
+          <span class="job-status-badge" style="background:${st.bg};color:${st.color}">${st.label}</span>
+        </div>
+        <div class="job-meta">지원일 ${formatDateKo(a.date)}</div>
+        ${a.memo ? `<div class="job-memo">${escapeHtml(a.memo)}</div>` : ''}
+        <div class="job-card-actions">
+          <button onclick="openJobModal('${a.id}')">수정</button>
+          <button class="del" onclick="quickDeleteJob('${a.id}')">삭제</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function openJobModal(id) {
+  const isEdit = !!id;
+  document.getElementById('jobModalTitle').textContent = isEdit ? '지원 이력 수정' : '지원 이력 추가';
+  document.getElementById('jobDeleteBtn').style.display = isEdit ? 'block' : 'none';
+  if (isEdit) {
+    const a = state.jobApplications.find(x => x.id === id);
+    document.getElementById('jobEditId').value = a.id;
+    document.getElementById('jobCompanyInput').value = a.company;
+    document.getElementById('jobPositionInput').value = a.position;
+    document.getElementById('jobDateInput').value = a.date;
+    document.getElementById('jobStatusInput').value = a.status;
+    document.getElementById('jobMemoInput').value = a.memo || '';
+  } else {
+    document.getElementById('jobEditId').value = '';
+    document.getElementById('jobCompanyInput').value = '';
+    document.getElementById('jobPositionInput').value = '';
+    document.getElementById('jobDateInput').value = todayStr();
+    document.getElementById('jobStatusInput').value = 'applied';
+    document.getElementById('jobMemoInput').value = '';
+  }
+  document.getElementById('jobModalOverlay').classList.add('show');
+}
+
+function closeJobModal() {
+  document.getElementById('jobModalOverlay').classList.remove('show');
+}
+
+function saveJobFromModal() {
+  const id = document.getElementById('jobEditId').value;
+  const company = document.getElementById('jobCompanyInput').value.trim();
+  const position = document.getElementById('jobPositionInput').value.trim();
+  const date = document.getElementById('jobDateInput').value;
+  const status = document.getElementById('jobStatusInput').value;
+  const memo = document.getElementById('jobMemoInput').value.trim();
+
+  if (!company || !date) {
+    showToast('회사명과 지원일은 필수예요');
+    return;
+  }
+
+  if (id) {
+    const a = state.jobApplications.find(x => x.id === id);
+    Object.assign(a, { company, position, date, status, memo });
+  } else {
+    state.jobApplications.push({ id: uid(), company, position, date, status, memo });
+  }
+  saveState();
+  closeJobModal();
+  renderJobs();
+}
+
+function deleteJobFromModal() {
+  const id = document.getElementById('jobEditId').value;
+  if (!id) return;
+  if (!confirm('이 지원 이력을 삭제할까요?')) return;
+  state.jobApplications = state.jobApplications.filter(x => x.id !== id);
+  saveState();
+  closeJobModal();
+  renderJobs();
+}
+
+function quickDeleteJob(id) {
+  if (!confirm('이 지원 이력을 삭제할까요?')) return;
+  state.jobApplications = state.jobApplications.filter(x => x.id !== id);
+  saveState();
+  renderJobs();
+}
+
+/* -------------------- 설정 / 백업 -------------------- */
+
+function openSettingsModal() {
+  document.getElementById('settingsModalOverlay').classList.add('show');
+}
+function closeSettingsModal() {
+  document.getElementById('settingsModalOverlay').classList.remove('show');
+}
+
+function exportData() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `pacekit_backup_${todayStr()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('백업 파일을 다운로드했어요');
+}
+
+function importData(ev) {
+  const file = ev.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const parsed = JSON.parse(reader.result);
+      if (!parsed || typeof parsed !== 'object') throw new Error('형식 오류');
+      if (!confirm('가져온 데이터로 현재 데이터를 덮어쓸까요? 이 작업은 되돌릴 수 없어요.')) return;
+      state = Object.assign(defaultState(), parsed);
+      saveState();
+      renderAll();
+      closeSettingsModal();
+      showToast('데이터를 가져왔어요');
+    } catch (e) {
+      alert('올바른 백업 파일이 아니에요.');
+    }
+    ev.target.value = '';
+  };
+  reader.readAsText(file);
+}
+
+/* -------------------- 공통 유틸 -------------------- */
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+/* -------------------- 전체 렌더 -------------------- */
+
+function renderAll() {
+  renderMilestoneBar();
+  renderToday();
+  if (currentView === 'calendar') renderCalendar();
+  if (currentView === 'jobs') renderJobs();
+}
+
+/* -------------------- 초기화 -------------------- */
+
+function init() {
+  // lastVisitDate 갱신 (어제 못 한 일 판단 기준은 실시간 날짜 비교이므로 별도 마이그레이션 불필요)
+  state.lastVisitDate = todayStr();
+  saveState();
+  renderAll();
+}
+
+init();
+</script>
+</body>
+</html>
