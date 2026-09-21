@@ -799,6 +799,7 @@
     </div>
     <button id="milestoneAddBtn" onclick="openMilestoneModal()">+ 마일스톤</button>
   </div>
+  <p id="portfolioDemoNotice" hidden style="font-size:12px;line-height:1.7;color:#6B7280;margin:8px 0">포트폴리오 데모 · 예시 일정만 표시합니다. 입력은 임시로 반영되며 새로고침하면 초기화됩니다.</p>
   <div id="milestoneList"></div>
 </div>
 
@@ -988,6 +989,7 @@
    단일 HTML 파일 / Vanilla JS / localStorage 저장
    ========================================================================== */
 
+const PORTFOLIO_DEMO = new URLSearchParams(location.search).get('demo') === '1';
 const STORAGE_KEY = 'pacekit_data_v1';
 const MAX_PER_DAY = 5;
 const MAX_PER_TRACK = 2;
@@ -1053,6 +1055,15 @@ function formatDateKo(s) {
 let state = loadState();
 
 function defaultState() {
+  if (PORTFOLIO_DEMO) return {
+    todos: [],
+    milestones: [
+      { id: 'demo-1', name: '예시 프로젝트 마감', date: addDaysStr(todayStr(), 7) },
+      { id: 'demo-2', name: '예시 일정', date: addDaysStr(todayStr(), 14) },
+    ],
+    jobApplications: [],
+    lastVisitDate: todayStr(),
+  };
   return {
     todos: [],
     milestones: [
@@ -1066,6 +1077,7 @@ function defaultState() {
 }
 
 function loadState() {
+  if (PORTFOLIO_DEMO) return defaultState();
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultState();
@@ -1078,6 +1090,7 @@ function loadState() {
 }
 
 function saveState() {
+  if (PORTFOLIO_DEMO) return;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
@@ -1622,6 +1635,7 @@ function exportData() {
 }
 
 function importData(ev) {
+  if (PORTFOLIO_DEMO) return;
   const file = ev.target.files[0];
   if (!file) return;
   const reader = new FileReader();
@@ -1663,6 +1677,14 @@ function renderAll() {
 /* -------------------- 초기화 -------------------- */
 
 function init() {
+  if (PORTFOLIO_DEMO) {
+    document.getElementById('portfolioDemoNotice').hidden = false;
+    document.getElementById('settingsEntry').hidden = true;
+    TRACKS.naru.name = '프로젝트 A';
+    TRACKS.tiger.name = '프로젝트 B';
+    document.querySelectorAll('option[value="naru"]').forEach(el => { el.textContent = '프로젝트 A'; });
+    document.querySelectorAll('option[value="tiger"]').forEach(el => { el.textContent = '프로젝트 B'; });
+  }
   // lastVisitDate 갱신 (어제 못 한 일 판단 기준은 실시간 날짜 비교이므로 별도 마이그레이션 불필요)
   state.lastVisitDate = todayStr();
   saveState();
