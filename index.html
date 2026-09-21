@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PaceKit</title>
 <style>
   :root {
@@ -787,11 +787,67 @@
     opacity: 1;
     transform: translateX(-50%) translateY(0);
   }
+
+/* Responsive workspace: one aligned shell on desktop, stacked cards on mobile. */
+.pace-shell { max-width:1120px; margin:36px auto; padding:0 28px; display:grid; grid-template-columns:280px minmax(0,1fr); gap:24px; align-items:start; }
+body { padding-bottom:28px; }
+#ddayBar { grid-column:1; grid-row:1 / span 2; position:sticky; top:28px; padding:24px; border:1px solid var(--border); border-radius:20px; box-shadow:none; min-width:0; }
+#ddayHeader { gap:12px; flex-wrap:wrap; margin-bottom:18px; }
+#ddayHeader h1 { font-size:27px; }
+#milestoneList { display:grid; grid-template-columns:1fr; overflow:visible; gap:12px; padding:0; }
+.milestone-card { min-width:0; padding:18px; }
+.milestone-name { max-width:none; white-space:normal; overflow-wrap:anywhere; }
+#portfolioDemoNotice { padding:12px 0; border-block:1px solid var(--border); }
+#app { grid-column:2; grid-row:2; padding:0; width:100%; max-width:none; min-width:0; }
+#bottomNav { grid-column:2; grid-row:1; position:static; width:100%; max-width:none; margin:0; box-shadow:none; border:1px solid var(--border); }
+.nav-btn { flex-direction:row; justify-content:center; gap:8px; min-height:48px; }
+.nav-btn.active { background:var(--accent-dim); }
+#todayHeader { margin:8px 0 24px; }
+#progressBox { box-shadow:none; border:1px solid var(--border); }
+.card { box-shadow:none; border:1px solid var(--border); }
+#addTodoForm, #dayDetailAddForm { display:grid!important; grid-template-columns:minmax(0,110px) minmax(0,1fr) auto; gap:8px; }
+#addTodoForm input, #dayDetailAddForm input, select { min-width:0; width:100%; }
+.todo-item { gap:8px; flex-wrap:wrap; }
+.todo-text { min-width:80px; overflow-wrap:anywhere; }
+.todo-actions { margin-left:auto; }
+button { min-height:36px; }
+.todo-check { min-height:28px; height:28px; width:28px; padding:0; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline:3px solid var(--accent); outline-offset:3px; }
+#dayDetailPanel { padding-bottom:calc(24px + env(safe-area-inset-bottom,0px)); }
+@media(max-width:760px) {
+ body { padding-bottom:100px; }
+ .pace-shell { display:block; padding:16px; margin:0 auto; max-width:640px; }
+ #ddayBar { position:static; padding:20px; }
+ #ddayHeader h1 { font-size:24px; }
+ #milestoneList { grid-template-columns:repeat(2,minmax(0,1fr)); }
+ .milestone-card { padding:14px; }
+ #app { padding:24px 0 0; }
+ #bottomNav { position:fixed; left:16px; right:16px; bottom:12px; width:auto; max-width:608px; box-shadow:0 4px 20px #1e233712; }
+ .nav-btn { flex-direction:column; gap:2px; font-size:11px; }
+ #addTodoForm, #dayDetailAddForm { grid-template-columns:minmax(0,1fr) auto; }
+ #addTodoForm select, #dayDetailAddForm select { grid-column:1 / -1; }
+ #addTodoForm input, #dayDetailAddForm input { width:100%; }
+ input, select, textarea { font-size:16px; }
+ .todo-item .track-badge { font-size:10px; }
+ .job-card { min-width:0; }
+ .job-card-top { flex-wrap:wrap; }
+ #jobSummary { gap:8px; }
+ .modal-overlay { padding:16px; }
+ .modal-box { padding:20px; }
+}
+@media(max-width:360px) {
+ .pace-shell { padding:12px; }
+ #ddayBar { padding:16px; }
+ #milestoneList { grid-template-columns:1fr; }
+ .track-count-chip { font-size:11px; }
+}
+
 </style>
 </head>
 <body>
 
 <!-- ===== D-Day 타임라인 바 (모든 탭 공통 상단 고정) ===== -->
+<div class="pace-shell">
 <div id="ddayBar">
   <div id="ddayHeader">
     <div>
@@ -828,13 +884,13 @@
       <div id="todayList"></div>
       <div class="limit-warning" id="limitWarning"></div>
       <form id="addTodoForm" onsubmit="return handleAddTodo(event)">
-        <select id="newTodoTrack">
+        <select id="newTodoTrack" aria-label="할 일 분류">
           <option value="job">구직</option>
-          <option value="naru">나루페이지</option>
-          <option value="tiger">타이거스톤</option>
+          <option value="naru">프로젝트 A</option>
+          <option value="tiger">프로젝트 B</option>
           <option value="life">생활</option>
         </select>
-        <input type="text" id="newTodoInput" placeholder="할 일을 입력하세요" maxlength="80">
+        <input aria-label="새 할 일" type="text" id="newTodoInput" placeholder="할 일을 입력하세요" maxlength="80">
         <button type="submit" id="addTodoBtn">추가</button>
       </form>
     </div>
@@ -878,6 +934,8 @@
   </button>
 </div>
 
+</div>
+
 <!-- ===== 날짜 상세 패널 (캘린더에서 날짜 클릭 시) ===== -->
 <div id="dayDetailOverlay" onclick="if(event.target===this) closeDayDetail()">
   <div id="dayDetailPanel">
@@ -891,8 +949,8 @@
     <form id="dayDetailAddForm" style="display:flex;gap:8px;margin-top:12px;" onsubmit="return handleAddTodoForDetail(event)">
       <select id="dayDetailTrack">
         <option value="job">구직</option>
-        <option value="naru">나루페이지</option>
-        <option value="tiger">타이거스톤</option>
+        <option value="naru">프로젝트 A</option>
+        <option value="tiger">프로젝트 B</option>
         <option value="life">생활</option>
       </select>
       <input type="text" id="dayDetailInput" placeholder="할 일을 입력하세요" maxlength="80" style="flex:1;padding:11px 14px;border:1px solid var(--border);border-radius:14px;background:var(--bg);">
@@ -996,8 +1054,8 @@ const MAX_PER_TRACK = 2;
 
 const TRACKS = {
   job:   { name: '구직',      color: '#6C5CE7', bg: '#EBE8FD' },
-  naru:  { name: '나루페이지', color: '#27AE60', bg: '#E3F6EE' },
-  tiger: { name: '타이거스톤', color: '#E67E22', bg: '#FEF0E3' },
+  naru:  { name: '프로젝트 A', color: '#27AE60', bg: '#E3F6EE' },
+  tiger: { name: '프로젝트 B', color: '#E67E22', bg: '#FEF0E3' },
   life:  { name: '생활',      color: '#D6608F', bg: '#FDEBF3' },
 };
 
@@ -1056,7 +1114,10 @@ let state = loadState();
 
 function defaultState() {
   if (PORTFOLIO_DEMO) return {
-    todos: [],
+    todos: [
+      { id: 'demo-todo-1', date: todayStr(), track: 'naru', text: '[예시] 프로젝트 자료 정리', done: false },
+      { id: 'demo-todo-2', date: todayStr(), track: 'life', text: '[예시] 오늘의 일정 확인', done: true },
+    ],
     milestones: [
       { id: 'demo-1', name: '예시 프로젝트 마감', date: addDaysStr(todayStr(), 7) },
       { id: 'demo-2', name: '예시 일정', date: addDaysStr(todayStr(), 14) },
@@ -1067,9 +1128,8 @@ function defaultState() {
   return {
     todos: [],
     milestones: [
-      { id: 'm1', name: '퇴사 목표 (이직확인서)', date: '2026-09-10' },
-      { id: 'm2', name: '일본여행 (엄마 환갑)', date: '2026-09-15' },
-      { id: 'm3', name: '예비창업패키지 (예상)', date: '2027-03-01' },
+      { id: 'm1', name: '프로젝트 마감', date: addDaysStr(todayStr(), 7) },
+      { id: 'm2', name: '다음 일정', date: addDaysStr(todayStr(), 14) },
     ],
     jobApplications: [],
     lastVisitDate: todayStr(),
